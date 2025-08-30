@@ -3,30 +3,100 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Unibet × Polymarket Arb Calculator — v2</title>
-  <meta name="description" content="Calculate sportsbook-YES × Polymarket hedge using either Buy NO or Sell YES, with optional fees. Shows size, collateral, cashflow and guaranteed profit." />
+  <title>Unibet × Polymarket Arb Calculator</title>
+  <meta name="description" content="Calculate risk-free arbitrage between a sportsbook YES bet (decimal odds) and a Polymarket NO position, including fees and size to equalize outcomes." />
   <style>
-    :root { --bg:#0b0e13; --card:#121826; --muted:#8aa0b2; --text:#e6edf3; --accent:#4cc38a; --border:#223146; --radius:16px; --gap:14px; --shadow:0 6px 24px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.2);} *{box-sizing:border-box}
-    html,body{height:100%} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:radial-gradient(1200px 800px at 20% -20%,#162235 0%,transparent 60%),radial-gradient(1000px 600px at 110% 0%,#0d1b2a 0%,transparent 60%),var(--bg);color:var(--text);line-height:1.35}
-    .container{max-width:1100px;margin:32px auto;padding:0 16px} header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px} h1{font-size:22px;margin:0;letter-spacing:.2px} .small{color:var(--muted);font-size:13px}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)} .card{grid-column:span 12;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent 60%),var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)} .card .inner{padding:18px}
-    @media(min-width:900px){.card.inputs{grid-column:span 7}.card.results{grid-column:span 5}}
-    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px} input[type=text],input[type=number],select{width:100%;background:#0f1724;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:12px;outline:none} input::placeholder{color:#6e8193}
-    .row{display:grid;grid-template-columns:1fr;gap:var(--gap)} @media(min-width:700px){.row.two{grid-template-columns:1fr 1fr}} @media(min-width:900px){.row.three{grid-template-columns:1fr 1fr 1fr}}
-    .inline{display:grid;grid-template-columns:2fr 1fr;gap:10px} .note{font-size:12px;color:var(--muted);margin-top:6px}
-    .btns{display:flex;gap:10px;flex-wrap:wrap} button{background:#0f1724;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:transform .02s,border-color .15s} button:hover{border-color:#38567a} button:active{transform:translateY(1px)} .btn-primary{background:linear-gradient(180deg,rgba(76,195,138,.18),rgba(76,195,138,.06));border-color:#2a7f5c}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0f1724;font-size:12px;color:var(--muted)} .pill.good{color:#b7f6d5;border-color:#2a7f5c;background:rgba(76,195,138,.08)} .pill.bad{color:#ffd7d9;border-color:#7a2a2a;background:rgba(242,85,90,.08)}
-    .stat{background:#0f1724;border:1px solid var(--border);border-radius:12px;padding:12px;display:grid;gap:8px} .stat .k{font-size:12px;color:var(--muted)} .stat .v{font-size:18px;font-weight:600}
-    .results-grid{display:grid;grid-template-columns:1fr;gap:var(--gap)} @media(min-width:700px){.results-grid{grid-template-columns:1fr 1fr}}
-    details{border-top:1px dashed var(--border);padding-top:12px;margin-top:12px} summary{cursor:pointer;color:var(--muted)} code{background:#0f1724;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
-    .footer{margin-top:16px;color:var(--muted);font-size:12px} a{color:#8dd9ff;text-decoration:none}
+    :root {
+      --bg: #0b0e13;
+      --card: #121826;
+      --muted: #8aa0b2;
+      --text: #e6edf3;
+      --accent: #4cc38a;
+      --danger: #f2555a;
+      --warn: #f5a524;
+      --border: #223146;
+      --shadow: 0 6px 24px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.2);
+      --radius: 16px;
+      --gap: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+      background: radial-gradient(1200px 800px at 20% -20%, #162235 0%, transparent 60%),
+                  radial-gradient(1000px 600px at 110% 0%, #0d1b2a 0%, transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .container { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: 0.2px; }
+    .small { color: var(--muted); font-size: 13px; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--gap); }
+    .card { grid-column: span 12; background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 60%), var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card .inner { padding: 18px; }
+
+    @media (min-width: 900px) {
+      .card.inputs { grid-column: span 7; }
+      .card.results { grid-column: span 5; }
+    }
+
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; background: #0f1724; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px; padding: 12px 12px; outline: none;
+    }
+    input::placeholder { color: #6e8193; }
+    .row { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+    @media (min-width: 700px) { .row.two { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 900px) { .row.three { grid-template-columns: 1fr 1fr 1fr; } }
+
+    .inline {
+      display: grid; grid-template-columns: 2fr 1fr; gap: 10px;
+    }
+
+    .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      background: #0f1724; color: var(--text); border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 14px; cursor: pointer; transition: transform .02s ease-in-out, border-color .15s;
+    }
+    button:hover { border-color: #38567a; }
+    button:active { transform: translateY(1px); }
+    .btn-primary { background: linear-gradient(180deg, rgba(76,195,138,.18), rgba(76,195,138,.06)); border-color: #2a7f5c; }
+    .btn-ghost { background: transparent; }
+
+    .pill { display: inline-flex; align-items:center; gap:6px; padding: 6px 10px; border-radius: 999px; border:1px solid var(--border); background: #0f1724; font-size: 12px; color: var(--muted); }
+    .pill.good { color: #b7f6d5; border-color: #2a7f5c; background: rgba(76,195,138,.08); }
+    .pill.bad { color: #ffd7d9; border-color: #7a2a2a; background: rgba(242,85,90,.08); }
+
+    .stat {
+      background: #0f1724; border:1px solid var(--border); border-radius: 12px; padding: 12px; display: grid; gap:8px;
+    }
+    .stat .k { font-size: 12px; color: var(--muted); }
+    .stat .v { font-size: 18px; font-weight: 600; }
+
+    .results-grid { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+    @media (min-width: 700px) { .results-grid { grid-template-columns: 1fr 1fr; } }
+
+    details { border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 12px; }
+    summary { cursor: pointer; color: var(--muted); }
+    code { background: #0f1724; border:1px solid var(--border); padding:2px 6px; border-radius: 6px; }
+
+    .footer { margin-top: 16px; color: var(--muted); font-size: 12px; }
+    a { color: #8dd9ff; text-decoration: none; }
+
+    .help { font-size: 12px; color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Unibet × Polymarket Arb Calculator — v2</h1>
-      <div class="small">YES at Sportsbook + (Buy NO / Sell YES) on Polymarket</div>
+      <h1>Unibet × Polymarket Arb Calculator</h1>
+      <div class="small">YES at Sportsbook + NO on Polymarket (includes Polymarket fee)</div>
     </header>
 
     <div class="grid">
@@ -45,9 +115,9 @@
 
           <div class="row two" style="margin-top:10px;">
             <div>
-              <label>Unibet odds (decimal/+American/fractional)</label>
+              <label>Unibet odds (accepts decimal, +American, or fractional)</label>
               <input id="odds" type="text" placeholder="8.0 or +700 or 7/1" />
-              <div class="note">Unibet FR uses decimal (e.g., <code>8.0</code>).</div>
+              <div class="note">Tip: Unibet FR uses decimal (e.g., <code>8.0</code>).</div>
             </div>
             <div>
               <label>Stake at sportsbook</label>
@@ -64,30 +134,26 @@
 
           <div class="row two" style="margin-top:10px;">
             <div>
-              <label>Polymarket leg & price</label>
-              <div class="inline" style="grid-template-columns: 1.2fr 0.8fr;">
-                <select id="pmMode">
-                  <option value="buyNO" selected>Buy NO (enter q)</option>
-                  <option value="sellYES">Sell YES (enter p)</option>
-                </select>
+              <label>Polymarket NO price (per $1 share)</label>
+              <div class="inline">
+                <input id="pmPrice" type="text" placeholder="0.87 or 87%" />
                 <select id="pmUnit">
-                  <option value="dollar" selected>price 0–1</option>
-                  <option value="percent">percent 0–100</option>
+                  <option value="dollar" selected>$ per share (0–1)</option>
+                  <option value="percent">percent (0–100)</option>
                 </select>
               </div>
-              <input id="pmPrice" type="text" placeholder="NO: 0.87 (or YES: 0.13)" style="margin-top:8px;" />
-              <div class="note"><b>Buy NO</b> spends q now. <b>Sell YES</b> receives p now and locks collateral ≈ (1−p) per share. Either way, exposure is ~identical when p+q≈1.</div>
+              <div class="note">This is the price to <b>buy NO</b>. If you only know the YES price p, use q = 1 − p.</div>
             </div>
             <div>
               <label>Polymarket fee</label>
               <div class="inline">
-                <input id="fee" type="text" value="0%" />
+                <input id="fee" type="text" value="2%" />
                 <select id="feeUnit">
                   <option value="percent" selected>%</option>
                   <option value="decimal">decimal</option>
                 </select>
               </div>
-              <div class="note">Official docs say no trading fee; some sources cite ~2% on net winnings at settlement. Set what you observe.</div>
+              <div class="note">Default is 2% of <b>net winnings</b> on Polymarket.</div>
             </div>
           </div>
 
@@ -114,14 +180,15 @@
 
           <details style="margin-top:10px;">
             <summary>How this works (math)</summary>
-            <div class="note" style="margin-top:8px;">
-              You back <b>YES</b> at the sportsbook (stake S at decimal D) and hedge on Polymarket either by <b>buying NO</b> at price q or <b>selling YES</b> at price p. Under Polymarket’s fully-collateralized design (1 YES + 1 NO = $1), these are economically equivalent when p + q ≈ 1.
+            <div class="help" style="margin-top:8px;">
+              You back <b>YES</b> at the sportsbook (stake S at decimal odds D) and <b>buy NO</b> on Polymarket at price q per $1 share. Polymarket charges a fee f on <i>net winnings</i> only.
               <ul>
-                <li><b>Buy NO</b> (price q): profit if team loses = (1−q)(1−f); loss if team wins = −q.</li>
-                <li><b>Sell YES</b> (price p): profit if team loses ≈ p(1−f); loss if team wins ≈ −(1−p). Cash now: +p/share; collateral locked: (1−p)/share.</li>
-                <li>Size to equalize outcomes (either mode): <code>K = S·D / (1 − f + f·q)</code>, with <code>q = 1 − p</code> when using a YES price.</li>
-                <li>Breakeven sportsbook odds for risk‑free: <code>D<sub>min</sub> = (1 − f + f·q) / ((1 − q)·(1 − f))</code>.</li>
+                <li>Outcome A (team wins): profit = S·(D−1) − K·q</li>
+                <li>Outcome B (team loses): profit = −S + K·(1−q)·(1−f)</li>
+                <li>Size NO shares to equalize outcomes: <code>K = S·D / (1 − f + f·q)</code></li>
+                <li>Minimum D for a risk‑free arb: <code>D<sub>min</sub> = (1 − f + f·q) / ((1 − q)·(1 − f))</code></li>
               </ul>
+              If you only have YES price p, use q ≈ 1 − p.
             </div>
           </details>
         </div>
@@ -129,22 +196,26 @@
 
       <section class="card results">
         <div class="inner">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
             <div>
               <div class="small">Arb status</div>
-              <div id="arbPill" class="pill">Enter inputs…</div>
+              <div id="arbPill" class="pill">
+                <div><span class="k">Total bet (Unibet):</span> <span class="v" id="pillUniBet">–</span></div>
+                <div><span class="k">Total received (Polymarket):</span> <span class="v" id="pillPmCash">–</span></div>
+                <div><span class="k">Total return:</span> <span class="v" id="pillReturn">–</span></div>
+                <div><span class="k">Total return %:</span> <span class="v" id="pillReturnPct">–</span></div>
+              </div>
             </div>
             <div class="small" id="teamLabel"></div>
           </div>
 
           <div class="results-grid" id="stats">
-            <div class="stat"><div class="k">Required Polymarket size (K shares)</div><div class="v" id="kOut">–</div></div>
-            <div class="stat"><div class="k" id="polyCashLabel">Polymarket cash now</div><div class="v" id="noSpend">–</div></div>
-            <div class="stat"><div class="k" id="polyCollatLabel">Polymarket collateral locked</div><div class="v" id="polyCollat">–</div></div>
+            <div class="stat"><div class="k">Required Polymarket NO shares (K)</div><div class="v" id="kOut">–</div></div>
+            <div class="stat"><div class="k">Spend on NO (≈ K × q)</div><div class="v" id="noSpend">–</div></div>
             <div class="stat"><div class="k">Sportsbook stake (S)</div><div class="v" id="sOut">–</div></div>
-            <div class="stat"><div class="k">Total capital tied (S + collateral)</div><div class="v" id="outlay">–</div></div>
+            <div class="stat"><div class="k">Total outlay (S + NO spend)</div><div class="v" id="outlay">–</div></div>
             <div class="stat"><div class="k">Guaranteed profit (either outcome)</div><div class="v" id="profit">–</div></div>
-            <div class="stat"><div class="k">ROI on capital tied</div><div class="v" id="roi">–</div></div>
+            <div class="stat"><div class="k">ROI on outlay</div><div class="v" id="roi">–</div></div>
             <div class="stat"><div class="k">Breakeven decimal D<sub>min</sub></div><div class="v" id="dmin">–</div></div>
             <div class="stat"><div class="k">Odds edge (D − D<sub>min</sub>)</div><div class="v" id="edge">–</div></div>
           </div>
@@ -167,7 +238,9 @@
             </div>
           </details>
 
-          <div class="footer">Always verify market rules & liquidity. This tool does not place bets.</div>
+          <div class="footer">
+            Always verify market rules & liquidity. This tool does not place bets.
+          </div>
         </div>
       </section>
     </div>
@@ -176,59 +249,191 @@
   <script>
     const $ = (id) => document.getElementById(id);
 
-    function parseOdds(str){ if(!str) return NaN; str=String(str).trim().replace(',', '.'); if(str.includes('/')){const[a,b]=str.split('/').map(Number); if(isFinite(a)&&isFinite(b)&&b!==0) return 1+(a/b);} if(/^[+-]?\d+$/.test(str)){const a=parseInt(str,10); if(a>0) return 1+a/100; if(a<0) return 1-100/a;} const d=parseFloat(str); return isFinite(d)?d:NaN; }
-    function parsePercentOrDollar(valStr,unit){ if(!valStr) return NaN; let s=String(valStr).trim().replace(',', '.'); if(s.endsWith('%')){ s=s.slice(0,-1); unit='percent'; } const x=parseFloat(s); if(!isFinite(x)) return NaN; return unit==='percent'? x/100 : x; }
-    function parseFee(valStr,unit){ if(!valStr) return NaN; let s=String(valStr).trim(); if(s.endsWith('%')){ s=s.slice(0,-1); unit='percent'; } const x=parseFloat(s); if(!isFinite(x)) return NaN; return unit==='percent'? x/100 : x; }
-    function fmtMoney(x,sym){ if(!isFinite(x)) return '–'; return `${sym}${x.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
-    function fmtNum(x,d=2){ if(!isFinite(x)) return '–'; return x.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
-    function updatePill(ok,msg){ const pill=$('arbPill'); pill.textContent=msg; pill.className='pill '+(ok?'good':'bad'); }
-    function shareLink(params){ const url=new URL(window.location); Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v)); navigator.clipboard.writeText(url.toString()).then(()=>{ alert('Link copied to clipboard!'); },()=>{ prompt('Copy this link:', url.toString()); }); }
-    function applyQueryParams(){ const q=new URLSearchParams(window.location.search); ['team','ccy','odds','stake','stakeUnit','pmPrice','pmUnit','pmMode','fee','feeUnit','bankroll','rounding'].forEach(k=>{ if(q.has(k)) $(k).value=q.get(k); }); }
+    function parseOdds(str) {
+      if (!str) return NaN;
+      str = String(str).trim().replace(',', '.');
+      // Fractional (e.g., 7/1)
+      if (str.includes('/')) {
+        const [a, b] = str.split('/').map(Number);
+        if (isFinite(a) && isFinite(b) && b !== 0) return 1 + (a / b);
+      }
+      // American (+700 or -150)
+      if (/^[+-]?\d+$/.test(str)) {
+        const a = parseInt(str, 10);
+        if (a > 0) return 1 + a / 100;
+        if (a < 0) return 1 - 100 / a; // a is negative
+      }
+      // Decimal
+      const d = parseFloat(str);
+      return isFinite(d) ? d : NaN;
+    }
 
-    function compute(){
-      const team=$('team').value.trim(); $('teamLabel').textContent=team?`Team: ${team}`:'';
-      const ccy=$('ccy').value||'€';
-      const D=parseOdds($('odds').value);
-      let S=parseFloat($('stake').value);
-      const stakeUnit=$('stakeUnit').value; const bankroll=parseFloat($('bankroll').value);
-      if(stakeUnit==='bankroll'){ if(!isFinite(bankroll)||bankroll<=0){ updatePill(false,'Enter bankroll to use % stake'); return; } S=bankroll*(isFinite(S)?S/100:0); }
+    function parsePercentOrDollar(valStr, unit) {
+      if (!valStr) return NaN;
+      let s = String(valStr).trim().replace(',', '.');
+      // Allow trailing %
+      if (s.endsWith('%')) { s = s.slice(0, -1); unit = 'percent'; }
+      const x = parseFloat(s);
+      if (!isFinite(x)) return NaN;
+      if (unit === 'percent') return x / 100; // convert to 0..1
+      return x; // already 0..1
+    }
 
-      const pmMode=$('pmMode').value; const unit=$('pmUnit').value; const raw=$('pmPrice').value; const f=parseFee($('fee').value,$('feeUnit').value);
-      if(!isFinite(D)||D<=1){ updatePill(false,'Enter valid sportsbook odds (>1.00)'); return; }
-      if(!isFinite(S)||S<=0){ updatePill(false,'Enter a valid stake (>0)'); return; }
-      if(!isFinite(f)||f<0||f>=1){ updatePill(false,'Enter fee in [0,1)'); return; }
+    function parseFee(valStr, unit) {
+      if (!valStr) return NaN;
+      let s = String(valStr).trim();
+      if (s.endsWith('%')) { s = s.slice(0, -1); unit = 'percent'; }
+      const x = parseFloat(s);
+      if (!isFinite(x)) return NaN;
+      return unit === 'percent' ? x / 100 : x;
+    }
 
-      let price=parsePercentOrDollar(raw,unit); if(!isFinite(price)){ updatePill(false,'Enter a valid Polymarket price'); return; }
-      let qNO,pYES; if(pmMode==='sellYES'){ pYES=price; if(pYES<=0||pYES>=1){ updatePill(false,'Enter YES price p in (0,1)'); return; } qNO=1-pYES; } else { qNO=price; if(qNO<=0||qNO>=1){ updatePill(false,'Enter NO price q in (0,1)'); return; } pYES=1-qNO; }
+    function fmtMoney(x, sym) {
+      if (!isFinite(x)) return '–';
+      return `${sym}${x.toLocaleString(undefined,{ minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    function fmtNum(x, digits=2) {
+      if (!isFinite(x)) return '–';
+      return x.toLocaleString(undefined,{ minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
 
-      const Dmin=(1 - f + f*qNO) / ((1 - qNO) * (1 - f));
-      const edge=D - Dmin;
-      let K=(S * D) / (1 - f + f*qNO);
+    function updatePill(ok, msg) {
+      const pill = $('arbPill');
+      // Keep the content; only toggle styling based on arb viability
+      pill.className = 'pill ' + (ok ? 'good' : 'bad');
+    }
 
-      const rounding=$('rounding').value; let noSpend=K*qNO; if(rounding==='cent'){ noSpend=Math.round(noSpend*100)/100; K=noSpend/qNO; } else if(rounding==='share'){ K=Math.round(K*100)/100; noSpend=K*qNO; }
+    function shareLink(params) {
+      const url = new URL(window.location);
+      Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+      navigator.clipboard.writeText(url.toString()).then(()=>{
+        alert('Link copied to clipboard!');
+      }, ()=>{
+        prompt('Copy this link:', url.toString());
+      });
+    }
 
-      const profitWin= S*(D-1) - noSpend; // team wins: sportsbook pays, NO side loses q or short YES loses (1-p)
-      const profitLose= -S + K*(1 - qNO)*(1 - f); // team loses: sportsbook loses, PM leg pays p (or 1-q) after fee
-      const profit=Math.min(profitWin,profitLose);
+    function applyQueryParams() {
+      const q = new URLSearchParams(window.location.search);
+      if (q.has('team')) $('team').value = q.get('team');
+      if (q.has('ccy')) $('ccy').value = q.get('ccy');
+      if (q.has('odds')) $('odds').value = q.get('odds');
+      if (q.has('stake')) $('stake').value = q.get('stake');
+      if (q.has('stakeUnit')) $('stakeUnit').value = q.get('stakeUnit');
+      if (q.has('pmPrice')) $('pmPrice').value = q.get('pmPrice');
+      if (q.has('pmUnit')) $('pmUnit').value = q.get('pmUnit');
+      if (q.has('fee')) $('fee').value = q.get('fee');
+      if (q.has('feeUnit')) $('feeUnit').value = q.get('feeUnit');
+      if (q.has('bankroll')) $('bankroll').value = q.get('bankroll');
+      if (q.has('rounding')) $('rounding').value = q.get('rounding');
+    }
 
-      // Display
-      $('DOut').textContent=fmtNum(D,4); $('qOut').textContent=fmtNum(qNO,4); $('pOut').textContent=fmtNum(pYES,4); $('fOut').textContent=fmtNum(f,4);
-      $('kOut').textContent=fmtNum(K,4)+' shares';
-      let cashNow,collat; if(pmMode==='sellYES'){ cashNow=K*pYES; collat=K*(1-pYES); $('polyCashLabel').textContent='Cash received now (p × K)'; $('polyCollatLabel').textContent='Collateral locked ((1−p) × K)'; } else { cashNow=-noSpend; collat=K*qNO; $('polyCashLabel').textContent='Cash spent now (q × K)'; $('polyCollatLabel').textContent='Economic collateral (≈ q × K)'; }
-      $('noSpend').textContent=fmtMoney(cashNow, ccy);
-      $('polyCollat').textContent=fmtMoney(collat, ccy);
-      $('sOut').textContent=fmtMoney(S, ccy);
-      $('outlay').textContent=fmtMoney(S + collat, ccy);
-      const outlay=S + collat; const roi=profit / outlay; $('profit').textContent=fmtMoney(profit, ccy); $('roi').textContent=isFinite(roi)? (roi*100).toFixed(2)+'%' : '–'; $('dmin').textContent=fmtNum(Dmin,4); $('edge').textContent=(edge>=0?'+':'')+fmtNum(edge,4);
-      $('pWin').textContent=fmtMoney(profitWin, ccy); $('pLose').textContent=fmtMoney(profitLose, ccy);
+    function compute() {
+      const team = $('team').value.trim();
+      $('teamLabel').textContent = team ? `Team: ${team}` : '';
 
-      const isArb=profit>0 && D>Dmin; updatePill(isArb, isArb? 'ARB: guaranteed positive' : 'No arb at these inputs');
+      const ccy = $('ccy').value || '€';
+      // Odds
+      const D = parseOdds($('odds').value);
+      // Stake
+      let S = parseFloat($('stake').value);
+      const stakeUnit = $('stakeUnit').value;
+      const bankroll = parseFloat($('bankroll').value);
+      if (stakeUnit === 'bankroll') {
+        if (!isFinite(bankroll) || bankroll <= 0) { updatePill(false, 'Enter bankroll to use % stake'); return; }
+        S = bankroll * (isFinite(S) ? S/100 : 0); // S was a percent
+      }
+
+      // Polymarket NO price q
+      const qPrice = parsePercentOrDollar($('pmPrice').value, $('pmUnit').value);
+      const f = parseFee($('fee').value, $('feeUnit').value);
+
+      // Sanity checks
+      if (!isFinite(D) || D <= 1) { updatePill(false, 'Enter valid sportsbook odds (>1.00)'); return; }
+      if (!isFinite(S) || S <= 0) { updatePill(false, 'Enter a valid stake (>0)'); return; }
+      if (!isFinite(qPrice) || qPrice <= 0 || qPrice >= 1) { updatePill(false, 'Enter NO price q in (0,1)'); return; }
+      if (!isFinite(f) || f < 0 || f >= 1) { updatePill(false, 'Enter fee in [0,1)'); return; }
+
+      const qNO = qPrice;
+      const pYES = 1 - qNO; // informational
+
+      // Threshold odds for arb
+      const Dmin = (1 - f + f*qNO) / ((1 - qNO) * (1 - f));
+      const edge = D - Dmin;
+
+      // Sizing
+      let K = (S * D) / (1 - f + f*qNO); // required NO shares to equalize profit
+
+      // Rounding (optional)
+      const rounding = $('rounding').value;
+      let noSpend = K * qNO; // spend in $ on Polymarket
+      if (rounding === 'cent') {
+        noSpend = Math.round(noSpend * 100) / 100; // round spend to cents
+        K = noSpend / qNO;
+      } else if (rounding === 'share') {
+        K = Math.round(K * 100) / 100; // shares to 0.01
+        noSpend = K * qNO;
+      }
+
+      // Profits
+      const profitWin = S * (D - 1) - noSpend; // team wins: sportsbook pays, NO goes to 0 (we spent noSpend)
+      const profitLose = -S + K * (1 - qNO) * (1 - f); // team loses: sportsbook loses stake, NO pays 1 minus fee on winnings
+
+      const profit = Math.min(profitWin, profitLose); // should be ~equal; use min to be conservative
+      const outlay = S + noSpend;
+      const roi = profit / outlay;
+
+      // Update UI
+      $('DOut').textContent = fmtNum(D, 4);
+      $('qOut').textContent = fmtNum(qNO, 4);
+      $('pOut').textContent = fmtNum(pYES, 4);
+      $('fOut').textContent = fmtNum(f, 4);
+
+      $('kOut').textContent = fmtNum(K, 4) + ' shares';
+      $('noSpend').textContent = fmtMoney(noSpend, ccy);
+      $('sOut').textContent = fmtMoney(S, ccy);
+      $('outlay').textContent = fmtMoney(outlay, ccy);
+      $('profit').textContent = fmtMoney(profit, ccy);
+      $('roi').textContent = isFinite(roi) ? (roi*100).toFixed(2) + '%' : '–';
+      $('dmin').textContent = fmtNum(Dmin, 4);
+      $('edge').textContent = (edge >= 0 ? '+' : '') + fmtNum(edge, 4);
+
+      $('pWin').textContent = fmtMoney(profitWin, ccy);
+      $('pLose').textContent = fmtMoney(profitLose, ccy);
+      // Update Arb Status quick view
+      $('pillUniBet').textContent = fmtMoney(S, ccy);
+      $('pillPmCash').textContent = fmtMoney(-noSpend, ccy);
+      $('pillReturn').textContent = fmtMoney(profit, ccy);
+      $('pillReturnPct').textContent = isFinite(roi) ? (roi*100).toFixed(2) + '%' : '–';
+
+      const isArb = profit > 0 && D > Dmin;
+      updatePill(isArb, isArb ? 'ARB: guaranteed positive' : 'No arb at these inputs');
     }
 
     $('calcBtn').addEventListener('click', compute);
-    $('resetBtn').addEventListener('click', ()=>{ window.location.search=''; window.location.reload(); });
-    $('shareBtn').addEventListener('click', ()=>{ const params={ team:$('team').value, ccy:$('ccy').value, odds:$('odds').value, stake:$('stake').value, stakeUnit:$('stakeUnit').value, pmMode:$('pmMode').value, pmPrice:$('pmPrice').value, pmUnit:$('pmUnit').value, fee:$('fee').value, feeUnit:$('feeUnit').value, bankroll:$('bankroll').value, rounding:$('rounding').value, }; shareLink(params); });
-    ;['team','ccy','odds','stake','pmPrice','fee','bankroll'].forEach(id=>{ $(id).addEventListener('keydown',e=>{ if(e.key==='Enter') compute(); }); });
+    $('resetBtn').addEventListener('click', () => { window.location.search = ''; window.location.reload(); });
+    $('shareBtn').addEventListener('click', () => {
+      const params = {
+        team: $('team').value,
+        ccy: $('ccy').value,
+        odds: $('odds').value,
+        stake: $('stake').value,
+        stakeUnit: $('stakeUnit').value,
+        pmPrice: $('pmPrice').value,
+        pmUnit: $('pmUnit').value,
+        fee: $('fee').value,
+        feeUnit: $('feeUnit').value,
+        bankroll: $('bankroll').value,
+        rounding: $('rounding').value,
+      };
+      shareLink(params);
+    });
+
+    // Auto-compute on Enter in inputs
+    ['team','ccy','odds','stake','pmPrice','fee','bankroll'].forEach(id => {
+      $(id).addEventListener('keydown', (e)=>{ if (e.key === 'Enter') compute(); });
+    });
+
     applyQueryParams();
   </script>
 </body>
